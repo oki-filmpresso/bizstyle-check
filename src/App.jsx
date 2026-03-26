@@ -398,18 +398,18 @@ export default function App() {
       const color = scoreColors(colors, answers);
       const res = generateAdvice(colors, answers, tpo, color);
       setResult(res);
-      // Go to name input
-      triggerFade(() => setStep("name"));
+      // Go to loading animation first
+      triggerFade(() => setStep("loading"));
+      setTimeout(() => triggerFade(() => setStep("name")), 8000);
     } catch (e) { setError("画像の分析に失敗しました。別の写真をお試しください。"); }
   };
 
   const submitName = async () => {
     if (!userName.trim()) return;
-    // Send email with compressed photo
-    triggerFade(() => setStep("loading"));
+    // Send email with compressed photo, then show result
     const compressed = await compressImage(photo, 480, 0.7);
     sendEmail(userName, answers, result, compressed);
-    setTimeout(() => triggerFade(() => setStep("result")), 8000);
+    triggerFade(() => setStep("result"));
   };
 
   const resetApp = () => triggerFade(() => { setStep("welcome"); setQIndex(0); setAnswers({}); setPhoto(null); setResult(null); setError(null); setUserName(""); });
