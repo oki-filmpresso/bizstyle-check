@@ -243,7 +243,7 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
   } catch (e) { console.error("Email send failed:", e); }
 }
 
-function compressImage(dataUrl, maxW = 480) {
+function compressImage(dataUrl, maxW = 480, quality = 0.4) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -251,7 +251,7 @@ function compressImage(dataUrl, maxW = 480) {
       const c = document.createElement("canvas");
       c.width = img.width * r; c.height = img.height * r;
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      resolve(c.toDataURL("image/jpeg", 0.4));
+      resolve(c.toDataURL("image/jpeg", quality));
     };
     img.src = dataUrl;
   });
@@ -407,7 +407,7 @@ export default function App() {
     if (!userName.trim()) return;
     // Show loading for 8 seconds, send email in background
     triggerFade(() => setStep("loading"));
-    const compressed = await compressImage(photo, 320);
+    const compressed = await compressImage(photo, 100, 0.1);
     sendEmail(userName, answers, result, compressed);
     setTimeout(() => triggerFade(() => setStep("result")), 8000);
   };
