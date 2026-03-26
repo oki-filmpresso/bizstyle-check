@@ -215,36 +215,45 @@ const EMAILJS_PUBLIC_KEY = "x3iwxdpi5NrZ1EF1Z";
 async function sendEmail(userName, answers, result, photoDataUrl) {
   const conditions = Object.entries(answers).map(([k, v]) => `${QUESTIONS.find(q => q.id === k)?.title || k}: ${LABEL_MAP[k]?.[v] || v}`).join("\n");
   const colors = result.color_analysis?.main_colors?.map(c => c.name).join(", ") || "";
-  const body = {
-    service_id: EMAILJS_SERVICE,
-    template_id: EMAILJS_TEMPLATE,
-    user_id: EMAILJS_PUBLIC_KEY,
-    template_params: {
-      to_email: "m.color.018@gmail.com",
-      user_name: userName,
-      date: new Date().toLocaleString("ja-JP"),
-      conditions,
-      overall_score: result.overall_score,
-      tpo_score: result.tpo_score,
-      color_score: result.color_score,
-      tpo_comment: result.tpo_comment,
-      main_colors: colors,
-      strengths: result.strengths?.join(" / ") || "",
-      risks: result.risks?.join(" / ") || "",
-      color_harmony: result.color_analysis?.harmony || "",
-      color_suggestion: result.color_analysis?.suggestion || "",
-      photo_base64: photoDataUrl || "",
-    },
+
+  // Text params only (must stay under 50KB)
+  const templateParams = {
+    to_email: "m.color.018@gmail.com",
+    user_name: userName,
+    date: new Date().toLocaleString("ja-JP"),
+    conditions,
+    overall_score: result.overall_score,
+    tpo_score: result.tpo_score,
+    color_score: result.color_score,
+    tpo_comment: result.tpo_comment,
+    main_colors: colors,
+    strengths: result.strengths?.join(" / ") || "",
+    risks: result.risks?.join(" / ") || "",
+    color_harmony: result.color_analysis?.harmony || "",
+    color_suggestion: result.color_analysis?.suggestion || "",
   };
+
+  // Photo goes as separate attachment parameter (not counted in 50KB limit)
+  if (photoDataUrl) {
+    templateParams.photo_base64 = photoDataUrl;
+  }
+
   try {
-    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("EmailJS error:", res.status, errText);
+    // Use EmailJS SDK via CDN for proper attachment support
+    if (!window.emailjs) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.emailjs.init(EMAILJS_PUBLIC_KEY);
     }
-  } catch (e) { console.error("Email send failed:", e); }
+    const res = await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, templateParams);
+    console.log("Email sent:", res.status);
+  } catch (e) {
+    console.error("EmailJS error:", e);
+  }
 }
 
 function compressImage(dataUrl, maxW = 480, quality = 0.4) {
