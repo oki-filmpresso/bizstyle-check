@@ -474,7 +474,7 @@ export default function App() {
         {step === "camera" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
             <h2 style={{ ...H, fontSize: 22, textAlign: "center" }}>服装を撮影</h2>
-            <p style={{ color: T.textLight, fontSize: 15, textAlign: "center", marginTop: -12 }}>全身が映るように撮影すると正確な診断ができます</p>
+            <p style={{ color: T.textLight, fontSize: 15, textAlign: "center", marginTop: -12, lineHeight: 1.7 }}>背景がなるべく<strong style={{ color: T.accent }}>白い場所</strong>で<br />全身が映るように撮影してください</p>
             <div style={{ ...C, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
               {photo ? (
                 <div style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden" }}>
@@ -487,11 +487,12 @@ export default function App() {
                   <button onClick={capturePhoto} style={{ position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)", width: 64, height: 64, borderRadius: "50%", border: "4px solid #fff", background: "rgba(14,165,199,0.8)", cursor: "pointer", boxShadow: "0 4px 20px rgba(14,165,199,0.3)" }} />
                 </div>
               ) : (
-                <div style={{ width: "100%", aspectRatio: "3/4", borderRadius: 12, border: `2px dashed ${T.optBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "rgba(14,165,199,0.03)" }}>
+                <div style={{ width: "100%", aspectRatio: "3/4", borderRadius: 12, border: `2px dashed ${T.optBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "rgba(14,165,199,0.03)", padding: 20 }}>
                   <div style={{ fontSize: 48, opacity: 0.4 }}>📷</div>
+                  <p style={{ fontSize: 13, color: T.textLight, textAlign: "center", lineHeight: 1.7, margin: 0 }}>背景がなるべく白い場所で撮影、<br />または撮影済みの画像を貼付してください</p>
                   <div style={{ display: "flex", gap: 12 }}>
                     <button style={B(true)} onClick={startCamera}>カメラ起動</button>
-                    <button style={B(false)} onClick={() => fileRef.current?.click()}>ファイル選択</button>
+                    <button style={B(false)} onClick={() => fileRef.current?.click()}>画像を貼付</button>
                   </div>
                   <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
                 </div>
