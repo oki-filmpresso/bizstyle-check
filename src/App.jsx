@@ -301,7 +301,7 @@ function ColorSwatch({ color, name }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 36, height: 36, borderRadius: 8, background: color, border: "2px solid rgba(14,165,199,0.15)", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }} />
-      <span style={{ fontSize: 15, color: T.textMid }}>{name}</span>
+      <span style={{ fontSize: 16, color: T.textMid }}>{name}</span>
     </div>
   );
 }
@@ -419,8 +419,8 @@ export default function App() {
   const W = { minHeight: "100vh", background: T.bg, fontFamily: sans, color: T.text, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", overflow: "hidden" };
   const Fade = { opacity: fadeIn ? 1 : 0, transform: fadeIn ? "translateY(0)" : "translateY(10px)", transition: "all 0.22s ease" };
   const C = { background: T.cardBg, border: `1px solid ${T.cardBorder}`, borderRadius: 16, padding: "28px 24px", backdropFilter: "blur(20px)", width: "100%", maxWidth: 480, boxShadow: T.cardShadow };
-  const B = (p) => ({ padding: "16px 32px", borderRadius: 12, border: p ? "none" : `1px solid ${T.optBorder}`, background: p ? T.accentGrad : "rgba(255,255,255,0.7)", color: p ? "#fff" : T.text, fontFamily: sans, fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", boxShadow: p ? "0 2px 12px rgba(14,165,199,0.25)" : "none" });
-  const O = (s) => ({ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, border: s ? `2px solid ${T.optBorderActive}` : `1px solid ${T.optBorder}`, background: s ? T.optBgActive : T.optBg, color: T.text, cursor: "pointer", transition: "all 0.2s", fontFamily: sans, fontSize: 16, fontWeight: 500, width: "100%", textAlign: "left" });
+  const B = (p) => ({ padding: "16px 32px", borderRadius: 12, border: p ? "none" : `1px solid ${T.optBorder}`, background: p ? T.accentGrad : "rgba(255,255,255,0.7)", color: p ? "#fff" : T.text, fontFamily: sans, fontSize: 17, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", boxShadow: p ? "0 2px 12px rgba(14,165,199,0.25)" : "none" });
+  const O = (s) => ({ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, border: s ? `2px solid ${T.optBorderActive}` : `1px solid ${T.optBorder}`, background: s ? T.optBgActive : T.optBg, color: T.text, cursor: "pointer", transition: "all 0.2s", fontFamily: sans, fontSize: 17, fontWeight: 500, width: "100%", textAlign: "left" });
   const H = { fontFamily: font, fontWeight: 600, letterSpacing: 0.5, margin: 0, color: T.text };
 
   return (
@@ -436,10 +436,10 @@ export default function App() {
             <div>
               <div style={{ fontSize: 48, marginBottom: 16 }}>👔</div>
               <h1 style={{ ...H, fontSize: 32, background: T.accentGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI BizStyle Check</h1>
-              <p style={{ color: T.textLight, fontSize: 15, marginTop: 8, lineHeight: 1.7 }}>事業主のための<br />即席ファッション診断</p>
+              <p style={{ color: T.textLight, fontSize: 17, marginTop: 8, lineHeight: 1.7 }}>事業主のための<br />即席ファッション診断</p>
             </div>
             <div style={{ ...C, textAlign: "left" }}>
-              <p style={{ fontSize: 15, color: T.textMid, lineHeight: 1.8, margin: 0 }}>
+              <p style={{ fontSize: 17, color: T.textMid, lineHeight: 1.8, margin: 0 }}>
                 <span style={{ color: T.accent, fontWeight: 700 }}>①</span> 5つの質問に回答<br />
                 <span style={{ color: T.accent, fontWeight: 700 }}>②</span> 今の服装を撮影<br />
                 <span style={{ color: T.accent, fontWeight: 700 }}>③</span> AIがじっくり診断
@@ -458,7 +458,7 @@ export default function App() {
             <div style={{ fontSize: 12, color: T.textFaint, fontWeight: 600, letterSpacing: 2, marginBottom: 8 }}>QUESTION {qIndex + 1} / {QUESTIONS.length}</div>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{QUESTIONS[qIndex].icon}</div>
             <h2 style={{ ...H, fontSize: 22, marginBottom: 6 }}>{QUESTIONS[qIndex].title}</h2>
-            <p style={{ color: T.textLight, fontSize: 15, marginBottom: 24, marginTop: 0 }}>{QUESTIONS[qIndex].subtitle}</p>
+            <p style={{ color: T.textLight, fontSize: 17, marginBottom: 24, marginTop: 0 }}>{QUESTIONS[qIndex].subtitle}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {QUESTIONS[qIndex].options.map(o => (
                 <button key={o.value} style={O(answers[QUESTIONS[qIndex].id] === o.value)} onClick={() => selectAnswer(QUESTIONS[qIndex].id, o.value)}>
@@ -473,8 +473,8 @@ export default function App() {
         {/* CAMERA */}
         {step === "camera" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-            <h2 style={{ ...H, fontSize: 22, textAlign: "center" }}>服装を撮影</h2>
-            <p style={{ color: T.textLight, fontSize: 15, textAlign: "center", marginTop: -12, lineHeight: 1.7 }}>背景がなるべく<strong style={{ color: T.accent }}>白い場所</strong>で<br />全身が映るように撮影してください</p>
+            <h2 style={{ ...H, fontSize: 24, textAlign: "center" }}>服装を撮影</h2>
+            <p style={{ color: T.textMid, fontSize: 17, textAlign: "center", marginTop: -12, lineHeight: 1.7 }}>背景がなるべく<strong style={{ color: T.accent, fontSize: 20 }}>白い背景</strong>で<br />全身が映るように撮影してください</p>
             <div style={{ ...C, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
               {photo ? (
                 <div style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden" }}>
@@ -489,7 +489,7 @@ export default function App() {
               ) : (
                 <div style={{ width: "100%", aspectRatio: "3/4", borderRadius: 12, border: `2px dashed ${T.optBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "rgba(14,165,199,0.03)", padding: 20 }}>
                   <div style={{ fontSize: 48, opacity: 0.4 }}>📷</div>
-                  <p style={{ fontSize: 13, color: T.textLight, textAlign: "center", lineHeight: 1.7, margin: 0 }}>背景がなるべく白い場所で撮影、<br />または撮影済みの画像を貼付してください</p>
+                  <p style={{ fontSize: 16, color: T.textMid, textAlign: "center", lineHeight: 1.7, margin: 0 }}>背景がなるべく<strong style={{ color: T.accent, fontSize: 19 }}>白い背景</strong>で撮影、<br />または撮影済みの画像を貼付してください</p>
                   <div style={{ display: "flex", gap: 12 }}>
                     <button style={B(true)} onClick={startCamera}>カメラ起動</button>
                     <button style={B(false)} onClick={() => fileRef.current?.click()}>画像を貼付</button>
@@ -498,7 +498,7 @@ export default function App() {
                 </div>
               )}
             </div>
-            {error && <p style={{ color: T.error, fontSize: 14, textAlign: "center" }}>{error}</p>}
+            {error && <p style={{ color: T.error, fontSize: 16, textAlign: "center" }}>{error}</p>}
             <div style={{ display: "flex", gap: 12 }}>
               <button style={B(false)} onClick={() => triggerFade(() => { setStep("questions"); setQIndex(QUESTIONS.length - 1); })}>← 戻る</button>
               {photo && <button style={B(true)} onClick={analyzeNow}>⚡ 診断する →</button>}
@@ -511,7 +511,7 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
             <div style={{ fontSize: 40, marginBottom: 4 }}>✨</div>
             <h2 style={{ ...H, fontSize: 22, textAlign: "center" }}>診断結果の準備ができました</h2>
-            <p style={{ color: T.textLight, fontSize: 15, textAlign: "center", marginTop: -8, lineHeight: 1.6 }}>結果を表示するために<br />お名前をご入力ください</p>
+            <p style={{ color: T.textLight, fontSize: 17, textAlign: "center", marginTop: -8, lineHeight: 1.6 }}>結果を表示するために<br />お名前をご入力ください</p>
             <div style={{ ...C, display: "flex", flexDirection: "column", gap: 16 }}>
               <input
                 type="text"
@@ -560,7 +560,7 @@ export default function App() {
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 24 }}>🎯</span><h3 style={{ ...H, fontSize: 18 }}>TPO適合度</h3>
               </div>
-              <p style={{ fontSize: 16, color: T.textMid, lineHeight: 1.8, margin: 0 }}>{result.tpo_comment}</p>
+              <p style={{ fontSize: 17, color: T.textMid, lineHeight: 1.8, margin: 0 }}>{result.tpo_comment}</p>
             </div>
 
             <div style={C}>
@@ -572,13 +572,13 @@ export default function App() {
                   {result.color_analysis.main_colors.map((c, i) => <ColorSwatch key={i} color={c.hex} name={c.name} />)}
                 </div>
               )}
-              <p style={{ fontSize: 16, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px" }}>{result.color_analysis?.harmony}</p>
-              <p style={{ fontSize: 16, color: T.accent, lineHeight: 1.8, margin: 0, fontWeight: 500 }}>💡 {result.color_analysis?.suggestion}</p>
+              <p style={{ fontSize: 17, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px" }}>{result.color_analysis?.harmony}</p>
+              <p style={{ fontSize: 17, color: T.accent, lineHeight: 1.8, margin: 0, fontWeight: 500 }}>💡 {result.color_analysis?.suggestion}</p>
             </div>
 
             <div style={C}>
               <h3 style={{ ...H, fontSize: 17, color: T.good, marginBottom: 14 }}>✅ 良い点</h3>
-              {result.strengths?.map((s, i) => <p key={i} style={{ fontSize: 15, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px" }}>• {s}</p>)}
+              {result.strengths?.map((s, i) => <p key={i} style={{ fontSize: 17, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px" }}>• {s}</p>)}
             </div>
 
             {result.risks?.length > 0 && (
@@ -586,14 +586,14 @@ export default function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 24 }}>⚠️</span><h3 style={{ ...H, fontSize: 17, color: T.error }}>こんな印象を与えるリスクも…</h3>
                 </div>
-                {result.risks.map((r, i) => <p key={i} style={{ fontSize: 15, color: T.textMid, lineHeight: 1.8, margin: "0 0 10px", paddingLeft: 10, borderLeft: "3px solid rgba(220,38,38,0.25)" }}>{r}</p>)}
+                {result.risks.map((r, i) => <p key={i} style={{ fontSize: 17, color: T.textMid, lineHeight: 1.8, margin: "0 0 10px", paddingLeft: 10, borderLeft: "3px solid rgba(220,38,38,0.25)" }}>{r}</p>)}
               </div>
             )}
 
             <div style={{ ...C, padding: "16px 20px" }}>
               <div style={{ fontSize: 12, color: T.textFaint, fontWeight: 600, letterSpacing: 1, marginBottom: 10 }}>診断条件</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {Object.entries(answers).map(([k, v]) => <span key={k} style={{ fontSize: 13, color: T.textMid, background: "rgba(14,165,199,0.06)", padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(14,165,199,0.1)" }}>{LABEL_MAP[k]?.[v] || v}</span>)}
+                {Object.entries(answers).map(([k, v]) => <span key={k} style={{ fontSize: 14, color: T.textMid, background: "rgba(14,165,199,0.06)", padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(14,165,199,0.1)" }}>{LABEL_MAP[k]?.[v] || v}</span>)}
               </div>
             </div>
 
@@ -602,7 +602,7 @@ export default function App() {
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <span style={{ fontSize: 28 }}>👗</span>
                 <h3 style={{ ...H, fontSize: 17, marginTop: 8, color: T.text }}>プロにスタイリングしてもらう</h3>
-                <p style={{ fontSize: 14, color: T.textLight, marginTop: 6, lineHeight: 1.6 }}>診断結果をもとに、あなた専属のスタイリストがご提案します</p>
+                <p style={{ fontSize: 16, color: T.textLight, marginTop: 6, lineHeight: 1.6 }}>診断結果をもとに、あなた専属のスタイリストがご提案します</p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <a href="https://lin.ee/DGsEb2X" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, background: "#06C755", color: "#fff", textDecoration: "none", fontFamily: sans, fontSize: 15, fontWeight: 600, boxShadow: "0 2px 12px rgba(6,199,85,0.25)" }}>
