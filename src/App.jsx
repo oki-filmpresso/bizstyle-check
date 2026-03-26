@@ -237,9 +237,13 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
     },
   };
   try {
-    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("EmailJS error:", res.status, errText);
+    }
   } catch (e) { console.error("Email send failed:", e); }
 }
 
@@ -406,10 +410,14 @@ export default function App() {
 
   const submitName = async () => {
     if (!userName.trim()) return;
-    // Send email with compressed photo, then show result
-    const compressed = await compressImage(photo, 800, 0.65);
-    sendEmail(userName, answers, result, compressed);
     triggerFade(() => setStep("result"));
+    // Send email in background after showing result
+    try {
+      const compressed = await compressImage(photo, 640, 0.5);
+      await sendEmail(userName, answers, result, compressed);
+    } catch (e) {
+      console.error("Email failed:", e);
+    }
   };
 
   const resetApp = () => triggerFade(() => { setStep("welcome"); setQIndex(0); setAnswers({}); setPhoto(null); setResult(null); setError(null); setUserName(""); });
