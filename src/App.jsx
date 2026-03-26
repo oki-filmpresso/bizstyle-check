@@ -101,7 +101,7 @@ function getColorName(h, s, l) {
 
 function extractColors(imgEl) {
   const canvas = document.createElement("canvas");
-  const size = 80;
+  const size = 200;
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(imgEl, 0, 0, size, size);
@@ -405,9 +405,9 @@ export default function App() {
 
   const submitName = async () => {
     if (!userName.trim()) return;
-    // Show loading for 8 seconds, send email in background
+    // Send email with compressed photo
     triggerFade(() => setStep("loading"));
-    const compressed = await compressImage(photo, 100, 0.1);
+    const compressed = await compressImage(photo, 480, 0.7);
     sendEmail(userName, answers, result, compressed);
     setTimeout(() => triggerFade(() => setStep("result")), 8000);
   };
