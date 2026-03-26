@@ -243,6 +243,57 @@ function generateAdvice(colors, answers, tpoScore, colorScore) {
     ? `${scene}に合った好印象なスタイルです。${impression}という目標に向けて、この調子でいきましょう。`
     : `${scene}での${impression}を意識して、色のトーンや組み合わせを少し調整するとさらに効果的です。`;
 
+  // Risk warnings - always generate 2-3 tough but constructive risks
+  const risks = [];
+
+  if (answers.scene === "interview" && !hasDark) {
+    risks.push("カジュアルすぎて「この人、本気度が低いのでは？」と思われるリスクがあります");
+  } else if (answers.scene === "interview" && hasDark) {
+    risks.push("無難すぎて「個性がない」「印象に残らない」と受け取られる可能性があります");
+  }
+
+  if (answers.scene === "date_dinner" && hasDark && warmCount === 0) {
+    risks.push("堅すぎる印象で「仕事モードのまま来た」と距離を感じさせてしまうかもしれません");
+  } else if (answers.scene === "date_dinner" && warmCount >= 2) {
+    risks.push("カラフルすぎると「派手な人」という先入観を持たれる可能性があります");
+  }
+
+  if (answers.scene === "client" && !hasDark) {
+    risks.push("「この人に任せて大丈夫か？」と信頼感を疑われるリスクがあります");
+  }
+
+  if (answers.scene === "conference" && warmCount === 0 && hasDark) {
+    risks.push("暗い色だけだと壇上で地味に沈み、「自信がなさそう」に映るリスクがあります");
+  }
+
+  if (answers.impression === "authority" && !hasDark) {
+    risks.push("リーダーシップを示したいのに、軽い印象を与えて説得力が弱まる恐れがあります");
+  }
+
+  if (answers.impression === "friendly" && hasDark && warmCount === 0) {
+    risks.push("親しみやすさを目指しているのに「近寄りがたい」と感じさせてしまう可能性があります");
+  }
+
+  if (answers.relation === "first" && colorScore < 65) {
+    risks.push("初対面で色の統一感がないと「だらしない」という第一印象を持たれやすくなります");
+  }
+
+  if (answers.relation === "superior" && !hasDark) {
+    risks.push("目上の方に対してカジュアルすぎると「礼儀を知らない」と判断されるリスクがあります");
+  }
+
+  if (warmCount >= 3) {
+    risks.push("暖色が多すぎると「落ち着きがない」「子供っぽい」という印象を与えかねません");
+  }
+
+  if (cats.filter(c => c === "light").length >= 3) {
+    risks.push("全体が明るすぎると、ビジネスの場では「軽い人」と見られるリスクがあります");
+  }
+
+  // Always ensure at least 2 risks
+  if (risks.length < 1) risks.push("同じ色系統でまとめすぎると「無難すぎて印象に残らない」リスクがあります");
+  if (risks.length < 2) risks.push("シーンによっては「もう少し気を遣ってほしかった」と思われる可能性もゼロではありません");
+
   return {
     overall_score: Math.min(100, Math.max(30, overall)),
     tpo_score: tpoScore,
@@ -257,6 +308,7 @@ function generateAdvice(colors, answers, tpoScore, colorScore) {
     },
     strengths: goods.slice(0, 3),
     improvements: tips.slice(0, 3),
+    risks: risks.slice(0, 3),
     advice,
   };
 }
@@ -282,11 +334,13 @@ function ScoreRing({ score, size = 120, stroke = 8, color, label, delay = 0 }) {
   }, [score, delay, circ]);
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(14,165,199,0.1)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={anim} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
-        <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central" fill={T.text} fontSize={size * 0.28} fontWeight="700" style={{ transform: "rotate(90deg)", transformOrigin: "center" }}>{score}</text>
-      </svg>
+      <div style={{ position: "relative", width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(14,165,199,0.1)" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={anim} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.28, fontWeight: 700, color: T.text }}>{score}</div>
+      </div>
       <span style={{ fontSize: 13, color: T.textMid, fontWeight: 500 }}>{label}</span>
     </div>
   );
@@ -380,7 +434,7 @@ export default function App() {
 
   const exportCSV = () => {
     if (history.length === 0) return;
-    const header = "日時,シーン,与えたい印象,業界,関係性,スタイル好み,総合スコア,TPOスコア,色合わせスコア,メイン色,良い点,改善点,アドバイス";
+    const header = "日時,シーン,与えたい印象,業界,関係性,スタイル好み,総合スコア,TPOスコア,色合わせスコア,メイン色,良い点,改善点,印象リスク,アドバイス";
     const rows = history.map(h => {
       const a = h.answers;
       const r = h.result;
@@ -398,6 +452,7 @@ export default function App() {
         esc(r.color_analysis?.main_colors?.map(c => c.name).join("/")),
         esc(r.strengths?.join(" / ")),
         esc(r.improvements?.join(" / ")),
+        esc(r.risks?.join(" / ")),
         esc(r.advice),
       ].join(",");
     });
@@ -551,6 +606,16 @@ export default function App() {
               </div>
             </div>
 
+            {/* Risk warnings */}
+            {result.risks?.length > 0 && (
+              <div style={{ ...C, border: "1px solid rgba(220,38,38,0.15)", background: "rgba(220,38,38,0.03)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 22 }}>⚠️</span><h3 style={{ ...H, fontSize: 16, color: T.error }}>こんな印象を与えるリスクも…</h3>
+                </div>
+                {result.risks.map((r, i) => <p key={i} style={{ fontSize: 13, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px", paddingLeft: 8, borderLeft: "2px solid rgba(220,38,38,0.2)" }}>{r}</p>)}
+              </div>
+            )}
+
             <div style={{ ...C, border: "1px solid rgba(14,165,199,0.2)", background: "rgba(14,165,199,0.04)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <span style={{ fontSize: 22 }}>💼</span><h3 style={{ ...H, fontSize: 16, color: T.accent }}>総合アドバイス</h3>
@@ -563,6 +628,32 @@ export default function App() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {Object.entries(answers).map(([k, v]) => <span key={k} style={{ fontSize: 12, color: T.textMid, background: "rgba(14,165,199,0.06)", padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(14,165,199,0.1)" }}>{LABEL_MAP[k]?.[v] || v}</span>)}
               </div>
+            </div>
+
+            {/* LINE CTA */}
+            <div style={{ ...C, border: "1px solid rgba(6,199,85,0.2)", background: "linear-gradient(135deg, rgba(6,199,85,0.04), rgba(14,165,199,0.04))", padding: "28px 24px 24px" }}>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <span style={{ fontSize: 28 }}>👗</span>
+                <h3 style={{ ...H, fontSize: 17, marginTop: 8, color: T.text }}>プロにスタイリングしてもらう</h3>
+                <p style={{ fontSize: 13, color: T.textLight, marginTop: 6, lineHeight: 1.6 }}>診断結果をもとに、あなた専属のスタイリストがご提案します</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <a href="https://lin.ee/DGsEb2X" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, background: "#06C755", color: "#fff", textDecoration: "none", fontFamily: sans, fontSize: 14, fontWeight: 600, transition: "opacity 0.2s", boxShadow: "0 2px 12px rgba(6,199,85,0.25)" }}>
+                  <span style={{ fontSize: 22 }}>🏠</span>
+                  <div>
+                    <div>クローゼットの服でスタイリング</div>
+                    <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.85, marginTop: 2 }}>今ある服を活かしてプロがコーディネート</div>
+                  </div>
+                </a>
+                <a href="https://lin.ee/DGsEb2X" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, background: "#06C755", color: "#fff", textDecoration: "none", fontFamily: sans, fontSize: 14, fontWeight: 600, transition: "opacity 0.2s", boxShadow: "0 2px 12px rgba(6,199,85,0.25)" }}>
+                  <span style={{ fontSize: 22 }}>🛍️</span>
+                  <div>
+                    <div>お買い物同行でスタイリング</div>
+                    <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.85, marginTop: 2 }}>一緒にお店を回って最適な一着を選びます</div>
+                  </div>
+                </a>
+              </div>
+              <p style={{ fontSize: 11, color: T.textFaint, textAlign: "center", marginTop: 12 }}>LINE公式アカウントに繋がります</p>
             </div>
 
             <button style={{ ...B(true), width: "100%" }} onClick={resetApp}>もう一度診断する</button>
