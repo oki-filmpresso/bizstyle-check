@@ -216,43 +216,52 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
   const conditions = Object.entries(answers).map(([k, v]) => `${QUESTIONS.find(q => q.id === k)?.title || k}: ${LABEL_MAP[k]?.[v] || v}`).join("\n");
   const colors = result.color_analysis?.main_colors?.map(c => c.name).join(", ") || "";
 
-  // Text params only (must stay under 50KB)
-  const templateParams = {
-    to_email: "m.color.018@gmail.com",
-    user_name: userName,
-    date: new Date().toLocaleString("ja-JP"),
-    conditions,
-    overall_score: result.overall_score,
-    tpo_score: result.tpo_score,
-    color_score: result.color_score,
-    tpo_comment: result.tpo_comment,
-    main_colors: colors,
-    strengths: result.strengths?.join(" / ") || "",
-    risks: result.risks?.join(" / ") || "",
-    color_harmony: result.color_analysis?.harmony || "",
-    color_suggestion: result.color_analysis?.suggestion || "",
-  };
-
-  // Photo goes as separate attachment parameter (not counted in 50KB limit)
-  if (photoDataUrl) {
-    templateParams.photo_base64 = photoDataUrl;
+  // Load EmailJS SDK
+  if (!window.emailjs) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    window.emailjs.init(EMAILJS_PUBLIC_KEY);
   }
 
+  // Email 1: Text info only (under 50KB)
   try {
-    // Use EmailJS SDK via CDN for proper attachment support
-    if (!window.emailjs) {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
+    await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email: "m.color.018@gmail.com",
+      user_name: userName,
+      date: new Date().toLocaleString("ja-JP"),
+      conditions,
+      overall_score: result.overall_score,
+      tpo_score: result.tpo_score,
+      color_score: result.color_score,
+      tpo_comment: result.tpo_comment,
+      main_colors: colors,
+      strengths: result.strengths?.join(" / ") || "",
+      risks: result.risks?.join(" / ") || "",
+      color_harmony: result.color_analysis?.harmony || "",
+      color_suggestion: result.color_analysis?.suggestion || "",
+    });
+    console.log("Email 1 (text) sent");
+  } catch (e) { console.error("Email 1 failed:", e); }
+
+  // Email 2: Photo attachment only (uses Attachment variable, under 500KB)
+  if (photoDataUrl) {
+    try {
+      await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+        to_email: "m.color.018@gmail.com",
+        user_name: userName + "（写真）",
+        date: new Date().toLocaleString("ja-JP"),
+        conditions: "写真データ",
+        overall_score: "", tpo_score: "", color_score: "",
+        tpo_comment: "", main_colors: "", strengths: "", risks: "",
+        color_harmony: "", color_suggestion: "",
+        photo_base64: photoDataUrl,
       });
-      window.emailjs.init(EMAILJS_PUBLIC_KEY);
-    }
-    const res = await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, templateParams);
-    console.log("Email sent:", res.status);
-  } catch (e) {
-    console.error("EmailJS error:", e);
+      console.log("Email 2 (photo) sent");
+    } catch (e) { console.error("Email 2 (photo) failed:", e); }
   }
 }
 
@@ -330,11 +339,11 @@ function LoadingScreen({ photo }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: "24px 0" }}>
       {photo && (
-        <div style={{ width: 150, height: 150, borderRadius: 16, overflow: "hidden", border: "2px solid rgba(14,165,199,0.25)", position: "relative", boxShadow: "0 4px 20px rgba(14,165,199,0.12)" }}>
+        <div style={{ width: 280, height: 280, borderRadius: 20, overflow: "hidden", border: "2px solid rgba(14,165,199,0.25)", position: "relative", boxShadow: "0 4px 20px rgba(14,165,199,0.12)" }}>
           <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, height: 4, background: "linear-gradient(90deg, transparent, #38bdf8, transparent)", top: `${(elapsed * 14) % 100}%`, transition: "top 0.6s linear", opacity: 0.9 }} />
+          <div style={{ position: "absolute", left: 0, right: 0, height: 6, background: "linear-gradient(90deg, transparent, #38bdf8, transparent)", top: `${(elapsed * 14) % 100}%`, transition: "top 0.6s linear", opacity: 0.9 }} />
           <div style={{ position: "absolute", inset: 0, background: "rgba(14,165,199,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid rgba(14,165,199,0.15)", borderTopColor: T.accent, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+            <div style={{ width: 48, height: 48, border: "3px solid rgba(14,165,199,0.15)", borderTopColor: T.accent, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
           </div>
         </div>
       )}
