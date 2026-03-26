@@ -212,17 +212,17 @@ const EMAILJS_SERVICE = "service_bizstyle";
 const EMAILJS_TEMPLATE = "template_bizstyle";
 const EMAILJS_PUBLIC_KEY = "x3iwxdpi5NrZ1EF1Z";
 
-const IMGBB_API_KEY = "5483675ea285f3e2e2c98bb80bcc15f1";
+const CLOUDINARY_CLOUD = "dmnanoeyo";
+const CLOUDINARY_PRESET = "esfu8nic";
 
-async function uploadToImgBB(dataUrl) {
-  const base64 = dataUrl.split(",")[1];
+async function uploadPhoto(dataUrl) {
   const form = new FormData();
-  form.append("key", IMGBB_API_KEY);
-  form.append("image", base64);
-  const res = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: form });
+  form.append("file", dataUrl);
+  form.append("upload_preset", CLOUDINARY_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: "POST", body: form });
   const data = await res.json();
-  if (data.success) return data.data.url;
-  throw new Error("imgBB upload failed");
+  if (data.secure_url) return data.secure_url;
+  throw new Error("Cloudinary upload failed");
 }
 
 async function sendEmail(userName, answers, result, photoDataUrl) {
@@ -233,7 +233,7 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
   let photoUrl = "";
   if (photoDataUrl) {
     try {
-      photoUrl = await uploadToImgBB(photoDataUrl);
+      photoUrl = await uploadPhoto(photoDataUrl);
       console.log("Photo uploaded:", photoUrl);
     } catch (e) { console.error("Photo upload failed:", e); }
   }
