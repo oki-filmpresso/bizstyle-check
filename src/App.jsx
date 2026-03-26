@@ -101,13 +101,13 @@ function getColorName(h, s, l) {
 
 function extractColors(imgEl) {
   const canvas = document.createElement("canvas");
-  const size = 200;
+  const size = 300;
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(imgEl, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
   const buckets = {};
-  for (let i = 0; i < data.length; i += 16) {
+  for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2];
     const [h, s, l] = rgbToHsl(r, g, b);
     const { name, cat } = getColorName(h, s, l);
@@ -407,7 +407,7 @@ export default function App() {
   const submitName = async () => {
     if (!userName.trim()) return;
     // Send email with compressed photo, then show result
-    const compressed = await compressImage(photo, 480, 0.7);
+    const compressed = await compressImage(photo, 800, 0.65);
     sendEmail(userName, answers, result, compressed);
     triggerFade(() => setStep("result"));
   };
