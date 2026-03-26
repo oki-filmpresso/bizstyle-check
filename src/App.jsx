@@ -104,7 +104,10 @@ function extractColors(imgEl) {
   const size = 300;
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(imgEl, 0, 0, size, size);
+  // Analyze bottom 70% (neck down) - face detection happens in trimBelowFace separately
+  const srcY = Math.round(imgEl.naturalHeight * 0.3);
+  const srcH = imgEl.naturalHeight - srcY;
+  ctx.drawImage(imgEl, 0, srcY, imgEl.naturalWidth, srcH, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
   const buckets = {};
   for (let i = 0; i < data.length; i += 4) {
@@ -207,6 +210,44 @@ function generateAdvice(colors, answers, tpoScore, colorScore) {
   };
 }
 
+/* ── Claude API via Vercel API Route ── */
+async function generateAIComments(colors, answers, scores) {
+  const scene = LABEL_MAP.scene[answers.scene] || "";
+  const impression = LABEL_MAP.impression[answers.impression] || "";
+  const industry = LABEL_MAP.industry[answers.industry] || "";
+  const relation = LABEL_MAP.relation[answers.relation] || "";
+  const colorNames = colors.map(c => c.name).join("、");
+
+  const prompt = `あなたは辛口で有名なプロのファッションコンサルタントです。以下の条件で服装を診断してください。毎回ユニークで具体的なコメントを生成し、テンプレ的な表現は絶対に避けてください。まるで目の前にいる人に直接語りかけるように、その人の服の色（${colorNames}）に必ず具体的に言及してください。
+
+【条件】
+シーン: ${scene}
+与えたい印象: ${impression}
+業界: ${industry}
+相手との関係: ${relation}
+検出された色: ${colorNames}
+総合スコア: ${scores.overall}/100
+TPOスコア: ${scores.tpo}/100
+色合わせスコア: ${scores.color}/100
+
+以下のJSON形式のみで回答。他テキスト禁止。
+{"tpo_comment":"${scene}でのTPO適合度について2文。${colorNames}に具体的に言及","color_harmony":"${colorNames}の調和について1文。色名を使って具体的に","color_suggestion":"改善提案1文。具体的な色名やアイテム名を挙げて","strengths":["良い点3つ。各30字以内。色やスタイルに具体的に言及"],"risks":["辛口リスク3つ。各40字以内。相手からどう見えるかを率直に指摘。「〜と思われる」「〜に映る」等"]}`;
+
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    return JSON.parse(data.text.replace(/```json|```/g, "").trim());
+  } catch (e) {
+    console.error("AI comment generation failed, using fallback:", e);
+    return null;
+  }
+}
+
 /* ── Email via EmailJS ── */
 const EMAILJS_SERVICE = "service_bizstyle";
 const EMAILJS_TEMPLATE = "template_bizstyle";
@@ -225,18 +266,9 @@ async function uploadPhoto(dataUrl) {
   throw new Error("Cloudinary upload failed");
 }
 
-async function sendEmail(userName, answers, result, photoDataUrl) {
+async function sendEmail(userName, answers, result, emailPhotoUrl) {
   const conditions = Object.entries(answers).map(([k, v]) => `${QUESTIONS.find(q => q.id === k)?.title || k}: ${LABEL_MAP[k]?.[v] || v}`).join("\n");
   const colors = result.color_analysis?.main_colors?.map(c => c.name).join(", ") || "";
-
-  // Upload photo to imgBB and get URL
-  let photoUrl = "";
-  if (photoDataUrl) {
-    try {
-      photoUrl = await uploadPhoto(photoDataUrl);
-      console.log("Photo uploaded:", photoUrl);
-    } catch (e) { console.error("Photo upload failed:", e); }
-  }
 
   if (!window.emailjs) {
     await new Promise((resolve, reject) => {
@@ -263,7 +295,7 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
       risks: result.risks?.join(" / ") || "",
       color_harmony: result.color_analysis?.harmony || "",
       color_suggestion: result.color_analysis?.suggestion || "",
-      photo_url: photoUrl,
+      photo_url: emailPhotoUrl,
     });
     console.log("Email sent successfully");
   } catch (e) { console.error("Email failed:", e); }
@@ -277,6 +309,41 @@ function compressImage(dataUrl, maxW = 480, quality = 0.4) {
       const c = document.createElement("canvas");
       c.width = img.width * r; c.height = img.height * r;
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+// Trim image: detect face and crop below it, or fallback to bottom 70%
+async function trimBelowFace(dataUrl, maxW = 800, quality = 0.8) {
+  return new Promise(async (resolve) => {
+    const img = new Image();
+    img.onload = async () => {
+      let cropY = Math.round(img.height * 0.3); // default: top 30% cut
+
+      // Try FaceDetector API (Chrome)
+      try {
+        if (window.FaceDetector) {
+          const detector = new FaceDetector();
+          const faces = await detector.detect(img);
+          if (faces.length > 0) {
+            // Find the lowest face bottom edge
+            const maxFaceBottom = Math.max(...faces.map(f => f.boundingBox.y + f.boundingBox.height));
+            cropY = Math.round(maxFaceBottom + 20); // 20px buffer below chin
+          }
+        }
+      } catch (e) { /* FaceDetector not supported, use fallback */ }
+
+      // Crop from cropY to bottom
+      const srcH = img.height - cropY;
+      if (srcH < 50) { cropY = Math.round(img.height * 0.3); } // safety
+      const finalH = img.height - cropY;
+      const r = Math.min(maxW / img.width, 1);
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * r);
+      c.height = Math.round(finalH * r);
+      c.getContext("2d").drawImage(img, 0, cropY, img.width, finalH, 0, 0, c.width, c.height);
       resolve(c.toDataURL("image/jpeg", quality));
     };
     img.src = dataUrl;
@@ -392,6 +459,7 @@ export default function App() {
   const imgRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState(null);
+  const [facingMode, setFacingMode] = useState("environment");
 
   const triggerFade = useCallback((cb) => { setFadeIn(false); setTimeout(() => { cb(); setFadeIn(true); }, 180); }, []);
 
@@ -401,42 +469,95 @@ export default function App() {
     else triggerFade(() => setStep("camera"));
   };
 
-  const startCamera = async () => {
-    try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); setStream(s); setCameraActive(true); setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = s; }, 60); }
-    catch { setError("カメラにアクセスできませんでした"); }
+  const startCamera = async (mode) => {
+    const facing = mode || facingMode;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+      setStream(s); setCameraActive(true); setFacingMode(facing);
+      setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = s; }, 60);
+    } catch { setError("カメラにアクセスできませんでした"); }
+  };
+
+  const switchCamera = () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    startCamera(next);
   };
 
   const capturePhoto = () => {
     if (!videoRef.current) return;
-    const c = document.createElement("canvas"); c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
-    c.getContext("2d").drawImage(videoRef.current, 0, 0);
+    const v = videoRef.current;
+    const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext("2d");
+    if (facingMode === "user") {
+      ctx.translate(c.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(v, 0, 0);
     setPhoto(c.toDataURL("image/jpeg", 0.7));
     if (stream) stream.getTracks().forEach(t => t.stop()); setCameraActive(false);
   };
 
   const handleFile = (e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => setPhoto(ev.target.result); r.readAsDataURL(f); };
 
-  const analyzeNow = () => {
+  const analyzeNow = async () => {
     if (!imgRef.current) return;
     try {
+      // Instant: color extraction + rule-based scores
       const colors = extractColors(imgRef.current);
       const tpo = scoreTpo(colors, answers);
       const color = scoreColors(colors, answers);
-      const res = generateAdvice(colors, answers, tpo, color);
-      setResult(res);
-      // Go to loading animation first
+      const ruleResult = generateAdvice(colors, answers, tpo, color);
+      setResult(ruleResult);
+
+      // Show loading animation
       triggerFade(() => setStep("loading"));
-      setTimeout(() => triggerFade(() => setStep("name")), 8000);
+
+      // During 8s loading: fetch AI comments in background
+      const aiPromise = generateAIComments(colors, answers, {
+        overall: ruleResult.overall_score, tpo, color
+      });
+
+      // Wait for both: minimum 8s display + AI response
+      const [aiComments] = await Promise.all([
+        aiPromise,
+        new Promise(r => setTimeout(r, 8000)),
+      ]);
+
+      // Merge AI comments into result (AI overrides rule-based text, scores stay)
+      if (aiComments) {
+        setResult(prev => ({
+          ...prev,
+          tpo_comment: aiComments.tpo_comment || prev.tpo_comment,
+          color_analysis: {
+            ...prev.color_analysis,
+            harmony: aiComments.color_harmony || prev.color_analysis.harmony,
+            suggestion: aiComments.color_suggestion || prev.color_analysis.suggestion,
+          },
+          strengths: aiComments.strengths?.length >= 2 ? aiComments.strengths : prev.strengths,
+          risks: aiComments.risks?.length >= 2 ? aiComments.risks : prev.risks,
+        }));
+      }
+
+      triggerFade(() => setStep("name"));
     } catch (e) { setError("画像の分析に失敗しました。別の写真をお試しください。"); }
   };
 
   const submitName = async () => {
     if (!userName.trim()) return;
     triggerFade(() => setStep("result"));
-    // Send email in background after showing result
     try {
-      const compressed = await compressImage(photo, 800, 0.8);
-      await sendEmail(userName, answers, result, compressed);
+      // 1. Upload full image to Cloudinary (no trim, high quality)
+      const fullImage = await compressImage(photo, 800, 0.8);
+      uploadPhoto(fullImage).then(url => console.log("Full photo saved:", url)).catch(e => console.error("Cloudinary upload failed:", e));
+
+      // 2. Trim below face for email (privacy protected)
+      const trimmed = await trimBelowFace(photo, 640, 0.7);
+      const trimmedUrl = await uploadPhoto(trimmed);
+      console.log("Trimmed photo uploaded:", trimmedUrl);
+
+      // 3. Send email with trimmed photo URL
+      await sendEmail(userName, answers, result, trimmedUrl);
     } catch (e) {
       console.error("Email failed:", e);
     }
@@ -507,6 +628,7 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
             <h2 style={{ ...H, fontSize: 26, textAlign: "center" }}>服装を撮影</h2>
             <p style={{ color: T.textMid, fontSize: 18, textAlign: "center", marginTop: -12, lineHeight: 1.7 }}>背景がなるべく<strong style={{ color: T.accent, fontSize: 22 }}>白い背景</strong>で<br />全身が映るように撮影してください</p>
+            <p style={{ color: T.good, fontSize: 14, textAlign: "center", marginTop: -4, lineHeight: 1.5 }}>🔒 首から下だけをトリミングしてスキャンします</p>
             <div style={{ ...C, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
               {photo ? (
                 <div style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden" }}>
@@ -515,13 +637,15 @@ export default function App() {
                 </div>
               ) : cameraActive ? (
                 <div style={{ width: "100%", borderRadius: 12, overflow: "hidden", position: "relative" }}>
-                  <video ref={videoRef} autoPlay playsInline style={{ width: "100%", borderRadius: 12, display: "block" }} />
+                  <video ref={videoRef} autoPlay playsInline style={{ width: "100%", borderRadius: 12, display: "block", transform: facingMode === "user" ? "scaleX(-1)" : "none" }} />
                   <button onClick={capturePhoto} style={{ position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)", width: 64, height: 64, borderRadius: "50%", border: "4px solid #fff", background: "rgba(14,165,199,0.8)", cursor: "pointer", boxShadow: "0 4px 20px rgba(14,165,199,0.3)" }} />
+                  <button onClick={switchCamera} style={{ position: "absolute", bottom: 20, right: 16, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>🔄</button>
                 </div>
               ) : (
                 <div style={{ width: "100%", aspectRatio: "3/4", borderRadius: 12, border: `2px dashed ${T.optBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "rgba(14,165,199,0.03)", padding: 20 }}>
                   <div style={{ fontSize: 48, opacity: 0.4 }}>📷</div>
                   <p style={{ fontSize: 18, color: T.textMid, textAlign: "center", lineHeight: 1.7, margin: 0 }}>背景がなるべく<strong style={{ color: T.accent, fontSize: 21 }}>白い背景</strong>で撮影、<br />または撮影済みの画像を貼付してください</p>
+                  <p style={{ fontSize: 13, color: T.good, textAlign: "center", margin: 0 }}>🔒 首から下のみをスキャンします</p>
                   <div style={{ display: "flex", gap: 12 }}>
                     <button style={B(true)} onClick={startCamera}>カメラ起動</button>
                     <button style={B(false)} onClick={() => fileRef.current?.click()}>画像を貼付</button>
