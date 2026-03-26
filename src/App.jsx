@@ -310,13 +310,13 @@ function ScoreRing({ score, size = 120, stroke = 8, color, label, delay = 0 }) {
   const [anim, setAnim] = useState(circ);
   useEffect(() => { const t = setTimeout(() => setAnim(circ - (score / 100) * circ), 150 + delay); return () => clearTimeout(t); }, [score, delay, circ]);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ position: "relative", width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: size, flexShrink: 0 }}>
+      <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(14,165,199,0.1)" strokeWidth={stroke} />
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={anim} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
         </svg>
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.28, fontWeight: 700, color: T.text }}>{score}</div>
+        <div style={{ position: "absolute", top: 0, left: 0, width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.28, fontWeight: 700, color: T.text, pointerEvents: "none" }}>{score}</div>
       </div>
       <span style={{ fontSize: 14, color: T.textMid, fontWeight: 500 }}>{label}</span>
     </div>
@@ -580,7 +580,7 @@ export default function App() {
               <h2 style={{ ...H, fontSize: 26, background: T.accentGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{userName}さんの診断結果</h2>
             </div>
 
-            <div style={{ ...C, display: "flex", justifyContent: "space-around", padding: "32px 16px" }}>
+            <div style={{ ...C, display: "flex", justifyContent: "center", alignItems: "flex-start", gap: 16, padding: "32px 16px", flexWrap: "wrap" }}>
               <ScoreRing score={result.overall_score} size={110} color={T.scoreMain} label="総合スコア" delay={0} />
               <ScoreRing score={result.tpo_score} size={90} color={T.scoreTpo} label="TPO適合度" delay={150} />
               <ScoreRing score={result.color_score} size={90} color={T.scoreColor} label="色合わせ" delay={300} />
