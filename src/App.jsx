@@ -212,11 +212,32 @@ const EMAILJS_SERVICE = "service_bizstyle";
 const EMAILJS_TEMPLATE = "template_bizstyle";
 const EMAILJS_PUBLIC_KEY = "x3iwxdpi5NrZ1EF1Z";
 
+const IMGBB_API_KEY = "5483675ea285f3e2e2c98bb80bcc15f1";
+
+async function uploadToImgBB(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const form = new FormData();
+  form.append("key", IMGBB_API_KEY);
+  form.append("image", base64);
+  const res = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: form });
+  const data = await res.json();
+  if (data.success) return data.data.url;
+  throw new Error("imgBB upload failed");
+}
+
 async function sendEmail(userName, answers, result, photoDataUrl) {
   const conditions = Object.entries(answers).map(([k, v]) => `${QUESTIONS.find(q => q.id === k)?.title || k}: ${LABEL_MAP[k]?.[v] || v}`).join("\n");
   const colors = result.color_analysis?.main_colors?.map(c => c.name).join(", ") || "";
 
-  // Load EmailJS SDK
+  // Upload photo to imgBB and get URL
+  let photoUrl = "";
+  if (photoDataUrl) {
+    try {
+      photoUrl = await uploadToImgBB(photoDataUrl);
+      console.log("Photo uploaded:", photoUrl);
+    } catch (e) { console.error("Photo upload failed:", e); }
+  }
+
   if (!window.emailjs) {
     await new Promise((resolve, reject) => {
       const s = document.createElement("script");
@@ -227,7 +248,6 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
     window.emailjs.init(EMAILJS_PUBLIC_KEY);
   }
 
-  // Email 1: Text info only (under 50KB)
   try {
     await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
       to_email: "m.color.018@gmail.com",
@@ -243,26 +263,10 @@ async function sendEmail(userName, answers, result, photoDataUrl) {
       risks: result.risks?.join(" / ") || "",
       color_harmony: result.color_analysis?.harmony || "",
       color_suggestion: result.color_analysis?.suggestion || "",
+      photo_url: photoUrl,
     });
-    console.log("Email 1 (text) sent");
-  } catch (e) { console.error("Email 1 failed:", e); }
-
-  // Email 2: Photo attachment only (uses Attachment variable, under 500KB)
-  if (photoDataUrl) {
-    try {
-      await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-        to_email: "m.color.018@gmail.com",
-        user_name: userName + "（写真）",
-        date: new Date().toLocaleString("ja-JP"),
-        conditions: "写真データ",
-        overall_score: "", tpo_score: "", color_score: "",
-        tpo_comment: "", main_colors: "", strengths: "", risks: "",
-        color_harmony: "", color_suggestion: "",
-        photo_base64: photoDataUrl,
-      });
-      console.log("Email 2 (photo) sent");
-    } catch (e) { console.error("Email 2 (photo) failed:", e); }
-  }
+    console.log("Email sent successfully");
+  } catch (e) { console.error("Email failed:", e); }
 }
 
 function compressImage(dataUrl, maxW = 480, quality = 0.4) {
@@ -431,7 +435,7 @@ export default function App() {
     triggerFade(() => setStep("result"));
     // Send email in background after showing result
     try {
-      const compressed = await compressImage(photo, 640, 0.5);
+      const compressed = await compressImage(photo, 800, 0.8);
       await sendEmail(userName, answers, result, compressed);
     } catch (e) {
       console.error("Email failed:", e);
