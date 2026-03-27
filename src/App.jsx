@@ -30,7 +30,7 @@ const QUESTIONS = [
     options: [
       { value: "jishin", label: "自信を出していきたい", icon: "💪" },
       { value: "relax", label: "リラックスしたい", icon: "🌿" },
-      { value: "seme", label: "攻めのスタイルで", icon: "⚡" },
+      { value: "seme", label: "インパクトを与えたい", icon: "⚡" },
       { value: "kihin", label: "上品にまとめたい", icon: "🎀" },
       { value: "natural", label: "ナチュラルに", icon: "🍃" },
     ],
