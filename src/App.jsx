@@ -3,14 +3,22 @@ import "./index.css";
 
 const QUESTIONS = [
   {
-    id: "impression", title: "今日どう見られたい？", subtitle: "相手にどんな印象を残したい？", icon: "✨",
+    id: "gender", title: "あなたの性別は？", subtitle: "スタイリングの参考にします", icon: "👤",
     options: [
-      { value: "dekiru", label: "「できる人」に見せたい", icon: "💼" },
-      { value: "oshare", label: "「おしゃれ」と思われたい", icon: "👗" },
-      { value: "shinrai", label: "「信頼できる」と感じさせたい", icon: "🤝" },
-      { value: "yasashii", label: "「優しそう」と思われたい", icon: "☺️" },
-      { value: "wakawakashii", label: "「若々しい」と見られたい", icon: "🌟" },
-      { value: "sexy", label: "「色気がある」と感じさせたい", icon: "🔥" },
+      { value: "male", label: "男性", icon: "🙋‍♂️" },
+      { value: "female", label: "女性", icon: "🙋‍♀️" },
+      { value: "other", label: "その他・答えたくない", icon: "🌈" },
+    ],
+  },
+  {
+    id: "scene", title: "今日の目的は？", subtitle: "メインイベントは何？", icon: "🎯",
+    options: [
+      { value: "shigoto", label: "仕事・ミーティング", icon: "💻" },
+      { value: "date", label: "デート・お出かけ", icon: "🥂" },
+      { value: "event", label: "パーティー・イベント", icon: "🎉" },
+      { value: "mensetsu", label: "面接・プレゼン", icon: "🎤" },
+      { value: "nichijou", label: "普段の1日", icon: "☕" },
+      { value: "satsuei", label: "撮影・SNS投稿", icon: "📸" },
     ],
   },
   {
@@ -26,32 +34,22 @@ const QUESTIONS = [
     ],
   },
   {
-    id: "mood", title: "今日のキブンは？", subtitle: "どんなモードで行きたい？", icon: "🎭",
+    id: "impression", title: "今日どう見られたい？", subtitle: "相手にどんな印象を残したい？", icon: "✨",
     options: [
-      { value: "jishin", label: "自信を出していきたい", icon: "💪" },
-      { value: "relax", label: "リラックスしたい", icon: "🌿" },
-      { value: "seme", label: "印象付けたい", icon: "⚡" },
-      { value: "kihin", label: "上品にまとめたい", icon: "🎀" },
-      { value: "natural", label: "ナチュラルに", icon: "🍃" },
-    ],
-  },
-  {
-    id: "scene", title: "今日の目的は？", subtitle: "メインイベントは何？", icon: "🎯",
-    options: [
-      { value: "shigoto", label: "仕事・ミーティング", icon: "💻" },
-      { value: "date", label: "デート・お出かけ", icon: "🥂" },
-      { value: "event", label: "パーティー・イベント", icon: "🎉" },
-      { value: "mensetsu", label: "面接・プレゼン", icon: "🎤" },
-      { value: "nichijou", label: "普段の1日", icon: "☕" },
-      { value: "satsuei", label: "撮影・SNS投稿", icon: "📸" },
+      { value: "dekiru", label: "「できる人」に見せたい", icon: "💼" },
+      { value: "oshare", label: "「おしゃれ」と思われたい", icon: "👗" },
+      { value: "shinrai", label: "「信頼できる」と感じさせたい", icon: "🤝" },
+      { value: "yasashii", label: "「優しそう」と思われたい", icon: "☺️" },
+      { value: "wakawakashii", label: "「若々しい」と見られたい", icon: "🌟" },
+      { value: "sexy", label: "「色気がある」と感じさせたい", icon: "🔥" },
     ],
   },
 ];
 
 const LABEL_MAP = {
+  gender: { male: "男性", female: "女性", other: "その他" },
   impression: { dekiru: "できる人", oshare: "おしゃれ", shinrai: "信頼できる", yasashii: "優しそう", wakawakashii: "若々しい", sexy: "色気がある" },
   who: { kininaru: "気になる異性", torihiki: "取引先", joushi: "上司・目上", buka: "部下・後輩", tomodachi: "友人", hajimete: "初対面", sns: "SNS" },
-  mood: { jishin: "自信モード", relax: "リラックス", seme: "攻めスタイル", kihin: "上品", natural: "ナチュラル" },
   scene: { shigoto: "仕事", date: "デート", event: "イベント", mensetsu: "面接・プレゼン", nichijou: "普段の日", satsuei: "撮影・SNS" },
 };
 
@@ -81,6 +79,8 @@ function getColorName(h, s, l) {
     if (l < 65) return { name: "グレー", cat: "neutral" };
     return { name: "ライトグレー", cat: "light" };
   }
+  // Skin tone detection: hue 10-40, saturation 20-60, lightness 40-80
+  if (h >= 10 && h < 40 && s >= 20 && s <= 60 && l >= 40 && l <= 80) return { name: "肌色", cat: "skin" };
   if (h < 15 || h >= 345) return { name: l < 40 ? "ダークレッド" : "レッド", cat: "warm" };
   if (h < 40) return { name: l < 45 ? "ブラウン" : "オレンジ", cat: "warm" };
   if (h < 70) return { name: l < 45 ? "カーキ" : "イエロー", cat: "warm" };
@@ -109,7 +109,10 @@ function extractColors(imgEl) {
     if (!buckets[name]) buckets[name] = { count: 0, r: 0, g: 0, b: 0, cat };
     buckets[name].count++; buckets[name].r += r; buckets[name].g += g; buckets[name].b += b;
   }
-  return Object.entries(buckets).sort((a, b) => b[1].count - a[1].count).slice(0, 5).map(([name, d]) => {
+  // Filter out skin tones, then return top 5 clothing colors
+  return Object.entries(buckets)
+    .filter(([name, d]) => d.cat !== "skin")
+    .sort((a, b) => b[1].count - a[1].count).slice(0, 5).map(([name, d]) => {
     const n = d.count;
     const hex = "#" + [d.r / n, d.g / n, d.b / n].map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
     return { name, hex, cat: d.cat, pct: n };
@@ -121,7 +124,6 @@ const FORMALITY = {
   scene: { shigoto: 75, date: 50, event: 55, mensetsu: 85, nichijou: 30, satsuei: 45 },
   impression: { dekiru: 80, oshare: 50, shinrai: 85, yasashii: 40, wakawakashii: 35, sexy: 45 },
   who: { kininaru: 55, torihiki: 80, joushi: 85, buka: 45, tomodachi: 30, hajimete: 70, sns: 40 },
-  mood: { jishin: 70, relax: 30, seme: 60, kihin: 80, natural: 35 },
 };
 
 function scoreColors(colors, answers) {
@@ -147,8 +149,7 @@ function scoreTpo(colors, answers) {
   const fScene = FORMALITY.scene[answers.scene] || 50;
   const fImp = FORMALITY.impression[answers.impression] || 50;
   const fWho = FORMALITY.who[answers.who] || 50;
-  const fMood = FORMALITY.mood[answers.mood] || 50;
-  const target = fScene * 0.35 + fImp * 0.3 + fWho * 0.2 + fMood * 0.15;
+  const target = fScene * 0.4 + fImp * 0.35 + fWho * 0.25;
   const cats = colors.map(c => c.cat);
   let clothing = 45;
   if (cats.includes("dark")) clothing += 18;
@@ -163,7 +164,7 @@ function generateAdvice(colors, answers, tpoScore, colorScore) {
   const scene = LABEL_MAP.scene[answers.scene] || "";
   const impression = LABEL_MAP.impression[answers.impression] || "";
   const who = LABEL_MAP.who[answers.who] || "";
-  const mood = LABEL_MAP.mood[answers.mood] || "";
+  const gender = LABEL_MAP.gender[answers.gender] || "";
   const cats = colors.map(c => c.cat);
   const mainColor = colors[0]?.name || "不明";
   const hasDark = cats.includes("dark");
@@ -210,16 +211,16 @@ async function generateAIComments(colors, answers, scores) {
   const scene = LABEL_MAP.scene[answers.scene] || "";
   const impression = LABEL_MAP.impression[answers.impression] || "";
   const who = LABEL_MAP.who[answers.who] || "";
-  const mood = LABEL_MAP.mood[answers.mood] || "";
+  const gender = LABEL_MAP.gender[answers.gender] || "";
   const colorNames = colors.map(c => c.name).join("、");
 
   const prompt = `あなたは親しみやすく優しいプロのファッションアドバイザーです。相手の良いところを認めつつ、改善点は「こうするともっと素敵ですよ」と前向きに提案するスタイルです。以下の条件で服装を診断してください。毎回ユニークで具体的なコメントを生成し、テンプレ的な表現は避けてください。その人の服の色（${colorNames}）に必ず具体的に言及してください。丁寧語（です・ます）で、友人にアドバイスするような温かい口調でお願いします。
 
 【条件】
+性別: ${gender}
 今日の目的: ${scene}
 見られたい印象: ${impression}
 会う相手: ${who}
-気分・モード: ${mood}
 検出された色: ${colorNames}
 総合スコア: ${scores.overall}/100
 TPOスコア: ${scores.tpo}/100
