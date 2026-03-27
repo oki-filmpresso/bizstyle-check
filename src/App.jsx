@@ -19,6 +19,7 @@ const QUESTIONS = [
       { value: "kininaru", label: "気になる異性", icon: "💕" },
       { value: "torihiki", label: "取引先・クライアント", icon: "🏢" },
       { value: "joushi", label: "上司・目上の方", icon: "👑" },
+      { value: "buka", label: "部下・年下・後輩", icon: "🌱" },
       { value: "tomodachi", label: "友人・仲間", icon: "🍻" },
       { value: "hajimete", label: "初対面の人", icon: "🆕" },
       { value: "sns", label: "SNS・不特定多数", icon: "📱" },
@@ -49,7 +50,7 @@ const QUESTIONS = [
 
 const LABEL_MAP = {
   impression: { dekiru: "できる人", oshare: "おしゃれ", shinrai: "信頼できる", yasashii: "優しそう", wakawakashii: "若々しい", sexy: "色気がある" },
-  who: { kininaru: "気になる異性", torihiki: "取引先", joushi: "上司・目上", tomodachi: "友人", hajimete: "初対面", sns: "SNS" },
+  who: { kininaru: "気になる異性", torihiki: "取引先", joushi: "上司・目上", buka: "部下・後輩", tomodachi: "友人", hajimete: "初対面", sns: "SNS" },
   mood: { jishin: "自信モード", relax: "リラックス", seme: "攻めスタイル", kihin: "上品", natural: "ナチュラル" },
   scene: { shigoto: "仕事", date: "デート", event: "イベント", mensetsu: "面接・プレゼン", nichijou: "普段の日", satsuei: "撮影・SNS" },
 };
@@ -119,7 +120,7 @@ function extractColors(imgEl) {
 const FORMALITY = {
   scene: { shigoto: 75, date: 50, event: 55, mensetsu: 85, nichijou: 30, satsuei: 45 },
   impression: { dekiru: 80, oshare: 50, shinrai: 85, yasashii: 40, wakawakashii: 35, sexy: 45 },
-  who: { kininaru: 55, torihiki: 80, joushi: 85, tomodachi: 30, hajimete: 70, sns: 40 },
+  who: { kininaru: 55, torihiki: 80, joushi: 85, buka: 45, tomodachi: 30, hajimete: 70, sns: 40 },
   mood: { jishin: 70, relax: 30, seme: 60, kihin: 80, natural: 35 },
 };
 
