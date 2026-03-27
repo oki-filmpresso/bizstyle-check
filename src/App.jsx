@@ -227,7 +227,7 @@ TPOスコア: ${scores.tpo}/100
 色合わせスコア: ${scores.color}/100
 
 以下のJSON形式のみで回答。他テキスト禁止。
-{"tpo_comment":"「${impression}」を${who}に見せたい${scene}シーンでの服装適合度について2文。${colorNames}に具体的に言及。温かい口調で","color_harmony":"${colorNames}の調和について1文。色名を使って具体的に。ポジティブに","color_suggestion":"改善提案1文。「〜するともっと素敵です」のような前向きな表現で、具体的な色名やアイテム名を挙げて","strengths":["良い点3つ。各30字以内。色やスタイルに具体的に言及。褒めるトーンで"],"risks":["気をつけたいポイント3つ。各40字以内。「〜に見えてしまうかも」「〜だともったいないです」等の優しい表現で"]}`;
+{"tpo_comment":"「${impression}」を${who}に見せたい${scene}シーンでの服装適合度について2文。${colorNames}に具体的に言及。温かい口調で","color_harmony":"${colorNames}の調和について1文。色名を使って具体的に。ポジティブに","color_suggestion":"改善提案1文。「〜するともっと素敵です」のような前向きな表現で、具体的な色名やアイテム名を挙げて","strengths":["良い点3つ。各30字以内。色やスタイルに具体的に言及。褒めるトーンで"],"risks":["率直なリスク指摘3つ。各40字以内。プロとして遠慮なく「〜と思われますよ」「〜に見えてしまいます」「〜は避けるべきです」等のはっきりした表現で。相手からの印象を具体的に"]}`;
 
   try {
     const res = await fetch("/api/analyze", {
@@ -543,17 +543,12 @@ export default function App() {
     if (!userName.trim()) return;
     triggerFade(() => setStep("result"));
     try {
-      // 1. Upload full image to Cloudinary (no trim, high quality)
+      // Upload full image to Cloudinary
       const fullImage = await compressImage(photo, 800, 0.8);
-      uploadPhoto(fullImage).then(url => console.log("Full photo saved:", url)).catch(e => console.error("Cloudinary upload failed:", e));
+      uploadPhoto(fullImage).then(url => console.log("Photo saved:", url)).catch(e => console.error("Cloudinary upload failed:", e));
 
-      // 2. Trim below face for email (privacy protected)
-      const trimmed = await trimBelowFace(photo, 640, 0.7);
-      const trimmedUrl = await uploadPhoto(trimmed);
-      console.log("Trimmed photo uploaded:", trimmedUrl);
-
-      // 3. Send email with trimmed photo URL
-      await sendEmail(userName, answers, result, trimmedUrl);
+      // Send email (text only, no photo)
+      await sendEmail(userName, answers, result, "");
     } catch (e) {
       console.error("Email failed:", e);
     }
@@ -700,14 +695,25 @@ export default function App() {
               <h2 style={{ ...H, fontSize: 26, background: T.accentGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{userName}さんの診断結果</h2>
             </div>
 
+            {/* スコア */}
             <div style={{ ...C, display: "flex", justifyContent: "center", alignItems: "flex-start", gap: 16, padding: "32px 16px", flexWrap: "wrap" }}>
               <ScoreRing score={result.overall_score} size={110} color={T.scoreMain} label="総合スコア" delay={0} />
               <ScoreRing score={result.tpo_score} size={90} color={T.scoreTpo} label="TPO適合度" delay={150} />
               <ScoreRing score={result.color_score} size={90} color={T.scoreColor} label="色合わせ" delay={300} />
             </div>
 
+            {/* 画像 */}
             {photo && <div style={{ ...C, padding: 12 }}><img src={photo} alt="" style={{ width: "100%", borderRadius: 10, display: "block" }} /></div>}
 
+            {/* 診断条件 */}
+            <div style={{ ...C, padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: T.textFaint, fontWeight: 600, letterSpacing: 1, marginBottom: 10 }}>診断条件</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {Object.entries(answers).map(([k, v]) => <span key={k} style={{ fontSize: 15, color: T.textMid, background: "rgba(14,165,199,0.06)", padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(14,165,199,0.1)" }}>{LABEL_MAP[k]?.[v] || v}</span>)}
+              </div>
+            </div>
+
+            {/* TPO適合度 */}
             <div style={C}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 24 }}>🎯</span><h3 style={{ ...H, fontSize: 20 }}>TPO適合度</h3>
@@ -715,6 +721,7 @@ export default function App() {
               <p style={{ fontSize: 18, color: T.textMid, lineHeight: 2.0, margin: 0 }}>{result.tpo_comment}</p>
             </div>
 
+            {/* 色合わせ分析 */}
             <div style={C}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 24 }}>🎨</span><h3 style={{ ...H, fontSize: 20 }}>色合わせ分析</h3>
@@ -728,11 +735,7 @@ export default function App() {
               <p style={{ fontSize: 18, color: T.accent, lineHeight: 1.8, margin: 0, fontWeight: 500 }}>💡 {result.color_analysis?.suggestion}</p>
             </div>
 
-            <div style={C}>
-              <h3 style={{ ...H, fontSize: 18, color: T.good, marginBottom: 14 }}>✅ 良い点</h3>
-              {result.strengths?.map((s, i) => <p key={i} style={{ fontSize: 18, color: T.textMid, lineHeight: 1.8, margin: "0 0 8px" }}>• {s}</p>)}
-            </div>
-
+            {/* リスク */}
             {result.risks?.length > 0 && (
               <div style={{ ...C, border: "1px solid rgba(220,38,38,0.15)", background: "rgba(220,38,38,0.03)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -742,19 +745,11 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ ...C, padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: T.textFaint, fontWeight: 600, letterSpacing: 1, marginBottom: 10 }}>診断条件</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {Object.entries(answers).map(([k, v]) => <span key={k} style={{ fontSize: 15, color: T.textMid, background: "rgba(14,165,199,0.06)", padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(14,165,199,0.1)" }}>{LABEL_MAP[k]?.[v] || v}</span>)}
-              </div>
-            </div>
-
             {/* LINE CTA */}
             <div style={{ ...C, border: "1px solid rgba(6,199,85,0.2)", background: "linear-gradient(135deg, rgba(6,199,85,0.04), rgba(14,165,199,0.04))", padding: "28px 24px 24px" }}>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <span style={{ fontSize: 28 }}>👗</span>
-                <h3 style={{ ...H, fontSize: 18, marginTop: 8, color: T.text }}>プロにスタイリングしてもらう</h3>
-                <p style={{ fontSize: 17, color: T.textLight, marginTop: 6, lineHeight: 1.6 }}>診断結果をもとに、あなた専属のスタイリストがご提案します</p>
+                <h3 style={{ ...H, fontSize: 18, marginTop: 8, color: T.text }}>経験豊富なプロのスタイリストに<br />アドバイスしてもらいたい</h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <a href="https://lin.ee/DGsEb2X" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderRadius: 12, background: "#06C755", color: "#fff", textDecoration: "none", fontFamily: sans, fontSize: 16, fontWeight: 600, boxShadow: "0 2px 12px rgba(6,199,85,0.25)" }}>
