@@ -580,14 +580,14 @@ export default function App() {
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
             <div>
               <div style={{ fontSize: 48, marginBottom: 16 }}>👔</div>
-              <h1 style={{ ...H, fontSize: 36, background: T.accentGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI BizStyle Check</h1>
-              <p style={{ color: T.textLight, fontSize: 18, marginTop: 8, lineHeight: 1.7 }}>事業主のための<br />即席ファッション診断</p>
+              <h1 style={{ ...H, fontSize: 34, background: T.accentGrad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AIファッションチェック</h1>
+              <p style={{ color: T.textLight, fontSize: 18, marginTop: 8, lineHeight: 1.7 }}>AIスタイリストが<br />あなたの服装にアドバイス</p>
             </div>
             <div style={{ ...C, textAlign: "left" }}>
               <p style={{ fontSize: 18, color: T.textMid, lineHeight: 2.0, margin: 0 }}>
                 <span style={{ color: T.accent, fontWeight: 700 }}>①</span> 今の服装を撮影<br />
                 <span style={{ color: T.textFaint, fontSize: 15 }}>　　白い背景で全身を</span><br />
-                <span style={{ color: T.accent, fontWeight: 700 }}>②</span> 5つの質問に回答<br />
+                <span style={{ color: T.accent, fontWeight: 700 }}>②</span> 4つの質問に回答<br />
                 <span style={{ color: T.textFaint, fontSize: 15 }}>　　シーンや目的など</span><br />
                 <span style={{ color: T.accent, fontWeight: 700 }}>③</span> AIが診断してスコア表示
               </p>
