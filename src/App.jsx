@@ -79,7 +79,6 @@ function getColorName(h, s, l) {
     if (l < 65) return { name: "グレー", cat: "neutral" };
     return { name: "ライトグレー", cat: "light" };
   }
-  // Skin tone detection: hue 10-40, saturation 20-60, lightness 40-80
   if (h >= 10 && h < 40 && s >= 20 && s <= 60 && l >= 40 && l <= 80) return { name: "肌色", cat: "skin" };
   if (h < 15 || h >= 345) return { name: l < 40 ? "ダークレッド" : "レッド", cat: "warm" };
   if (h < 40) return { name: l < 45 ? "ブラウン" : "オレンジ", cat: "warm" };
@@ -96,7 +95,6 @@ function extractColors(imgEl) {
   const size = 300;
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext("2d");
-  // Analyze bottom 70% (neck down) - face detection happens in trimBelowFace separately
   const srcY = Math.round(imgEl.naturalHeight * 0.3);
   const srcH = imgEl.naturalHeight - srcY;
   ctx.drawImage(imgEl, 0, srcY, imgEl.naturalWidth, srcH, 0, 0, size, size);
@@ -109,7 +107,6 @@ function extractColors(imgEl) {
     if (!buckets[name]) buckets[name] = { count: 0, r: 0, g: 0, b: 0, cat };
     buckets[name].count++; buckets[name].r += r; buckets[name].g += g; buckets[name].b += b;
   }
-  // Filter out skin tones, then return top 5 clothing colors
   return Object.entries(buckets)
     .filter(([name, d]) => d.cat !== "skin")
     .sort((a, b) => b[1].count - a[1].count).slice(0, 5).map(([name, d]) => {
@@ -206,40 +203,49 @@ function generateAdvice(colors, answers, tpoScore, colorScore) {
   };
 }
 
-/* ── Claude API via Vercel API Route ── */
-async function generateAIComments(colors, answers, scores) {
+/* ── Claude API via Vercel API Route (with Vision) ── */
+async function generateAIComments(colors, answers, scores, photoDataUrl) {
   const scene = LABEL_MAP.scene[answers.scene] || "";
   const impression = LABEL_MAP.impression[answers.impression] || "";
   const who = LABEL_MAP.who[answers.who] || "";
   const gender = LABEL_MAP.gender[answers.gender] || "";
-  const colorNames = colors.map(c => c.name).join("、");
 
-  const prompt = `あなたは経験豊富なプロのファッションスタイリストです。相手の良いところを認めつつ、改善点は「こうするともっと素敵ですよ」と前向きに提案するスタイルです。以下の条件で服装を診断してください。毎回ユニークで具体的なコメントを生成し、テンプレ的な表現は避けてください。
+  const prompt = `あなたは20年の実務経験を持つトップファッションスタイリストです。芸能人や経営者の専属スタイリングを多数手がけてきました。
 
-色（${colorNames}）だけでなく、その色から推測される服の柄（無地・ストライプ・チェック・花柄など）やシルエット（タイト・ルーズ・オーバーサイズなど）についてもプロの視点でコメントしてください。${gender}向けのアドバイスを意識してください。丁寧語（です・ます）で、プロが個別にアドバイスするような口調でお願いします。
+添付した写真の人物の服装を、プロの目で具体的に分析してください。
+色だけでなく、シルエット、素材感、フィット感、丈感、コーディネートのバランス、襟元、袖、アクセサリー、靴(見えれば)など、写真から読み取れるあらゆる要素について、相手の立場に立った診断をお願いします。
 
-【条件】
+【診断条件】
 性別: ${gender}
 今日の目的: ${scene}
 見られたい印象: ${impression}
 会う相手: ${who}
-検出された色: ${colorNames}
+
+【スコア参考値】
 総合スコア: ${scores.overall}/100
 TPOスコア: ${scores.tpo}/100
 色合わせスコア: ${scores.color}/100
 
-以下のJSON形式のみで回答。他テキスト禁止。
-{"tpo_comment":"「${impression}」を${who}に見せたい${scene}シーンでの服装適合度について2〜3文。色・柄・シルエットに言及。温かい口調で","color_harmony":"${colorNames}の調和と、推測される柄・形の相性について1〜2文。具体的に","color_suggestion":"色・柄・シルエットを含めた改善提案1〜2文。「〜するともっと素敵です」のような前向きな表現で、具体的なアイテム名を挙げて","strengths":["良い点3つ。各35字以内。色・柄・形に具体的に言及。褒めるトーンで"],"risks":["率直なリスク指摘3つ。各45字以内。色・柄・シルエットについてプロとして遠慮なく「〜と思われますよ」「〜に見えてしまいます」等のはっきりした表現で"]}`;
+【診断スタイル(厳守)】
+- 写真の特定の箇所(襟元、袖丈、シルエット、丈感など)を必ず指して言及
+- 抽象論や「テンプレ的な表現」「無難なコメント」は厳禁
+- 良い点は「どこが、なぜ良いか」を具体的に
+- 改善点は「こうするとさらに素敵」と前向きに、ただし率直に
+- ${gender}向けのアドバイスとして自然な表現
+- 丁寧語(です・ます)で、プロが対面でアドバイスする口調
+
+【出力形式】以下のJSON形式のみで回答。前後の説明文・コードブロック(\`\`\`)は一切禁止。
+{"tpo_comment":"${scene}で${who}に会い${impression}を演出したい目的に対する服装の適合度。写真の具体的な要素(色・素材・シルエット・丈感など)に触れて2〜3文","color_harmony":"写真から読み取れる色の組み合わせと柄・素材の調和について、具体的に1〜2文","color_suggestion":"色・柄・シルエット・小物などを含めた改善提案を1〜2文。具体的なアイテム名や手法を挙げて「〜するともっと素敵です」の前向きな表現で","strengths":["写真から見える具体的な良い点3つ。各40字以内。具体的な部位や要素に言及"],"risks":["${impression}を狙うこの場面で気になる率直な指摘3つ。各50字以内。「〜と思われます」「〜に見えてしまいます」のはっきりした表現で"]}`;
 
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, image: photoDataUrl }),
     });
     if (!res.ok) throw new Error(`API ${res.status}`);
     const data = await res.json();
-    return JSON.parse(data.text.replace(/```json|```/g, "").trim());
+    return JSON.parse(data.text);
   } catch (e) {
     console.error("AI comment generation failed, using fallback:", e);
     return null;
@@ -313,29 +319,25 @@ function compressImage(dataUrl, maxW = 480, quality = 0.4) {
   });
 }
 
-// Trim image: detect face and crop below it, or fallback to bottom 70%
 async function trimBelowFace(dataUrl, maxW = 800, quality = 0.8) {
   return new Promise(async (resolve) => {
     const img = new Image();
     img.onload = async () => {
-      let cropY = Math.round(img.height * 0.3); // default: top 30% cut
+      let cropY = Math.round(img.height * 0.3);
 
-      // Try FaceDetector API (Chrome)
       try {
         if (window.FaceDetector) {
           const detector = new FaceDetector();
           const faces = await detector.detect(img);
           if (faces.length > 0) {
-            // Find the lowest face bottom edge
             const maxFaceBottom = Math.max(...faces.map(f => f.boundingBox.y + f.boundingBox.height));
-            cropY = Math.round(maxFaceBottom + 20); // 20px buffer below chin
+            cropY = Math.round(maxFaceBottom + 20);
           }
         }
-      } catch (e) { /* FaceDetector not supported, use fallback */ }
+      } catch (e) { /* fallback */ }
 
-      // Crop from cropY to bottom
       const srcH = img.height - cropY;
-      if (srcH < 50) { cropY = Math.round(img.height * 0.3); } // safety
+      if (srcH < 50) { cropY = Math.round(img.height * 0.3); }
       const finalH = img.height - cropY;
       const r = Math.min(maxW / img.width, 1);
       const c = document.createElement("canvas");
@@ -511,10 +513,13 @@ export default function App() {
       // Show loading animation
       triggerFade(() => setStep("loading"));
 
-      // During 8s loading: fetch AI comments in background
+      // Compress photo for AI (smaller = faster + cheaper API call)
+      const compressedForAI = await compressImage(photo, 800, 0.7);
+
+      // During loading: send photo + prompt to Claude
       const aiPromise = generateAIComments(colors, answers, {
         overall: ruleResult.overall_score, tpo, color
-      });
+      }, compressedForAI);
 
       // Wait for both: minimum 8s display + AI response
       const [aiComments] = await Promise.all([
@@ -545,11 +550,8 @@ export default function App() {
     if (!userName.trim()) return;
     triggerFade(() => setStep("result"));
     try {
-      // Upload full image to Cloudinary
       const fullImage = await compressImage(photo, 800, 0.8);
       uploadPhoto(fullImage).then(url => console.log("Photo saved:", url)).catch(e => console.error("Cloudinary upload failed:", e));
-
-      // Send email (text only, no photo)
       await sendEmail(userName, answers, result, "");
     } catch (e) {
       console.error("Email failed:", e);
@@ -662,7 +664,7 @@ export default function App() {
             <div style={{ ...C, display: "flex", flexDirection: "column", gap: 16 }}>
               <input
                 type="text"
-                placeholder="お名前（ニックネーム可）"
+                placeholder="お名前(ニックネーム可)"
                 value={userName}
                 onChange={e => setUserName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitName()}
