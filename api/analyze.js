@@ -19,20 +19,28 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
+        model: "claude-sonnet-4-5",
+        max_tokens: 3000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     const data = await response.json();
-
     if (!response.ok) {
       console.error("Anthropic API error:", data);
       return res.status(response.status).json({ error: data });
     }
 
-    const text = data.content?.map(c => c.text || "").join("") || "";
+    // Claudeの応答を取得
+    let text = data.content?.map(c => c.text || "").join("") || "";
+
+    // マークダウンのコードブロックを剥がす（```json ... ``` の囲みを除去）
+    text = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
+
     res.status(200).json({ text });
   } catch (e) {
     console.error("API route error:", e);
